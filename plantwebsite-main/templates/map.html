@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Observation Map</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+
+   <style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #fff;
+    }
+
+    .filter-bar {
+        padding: 15px 20px;
+        background: #333;  
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        color: white;
+        border-bottom: 1px solid #222;
+        border-top: 1px solid #222;
+    }
+
+    .menu-item {
+        padding: 8px 12px; 
+        cursor: pointer;
+        background-color: #e0e0e0;
+        color: black;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+        display: flex; 
+        align-items: center; 
+        gap: 5px; 
+        text-decoration: none; 
+    }
+
+    .menu-item:hover {
+        background-color: #ccc; 
+    }
+
+    label {
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    select, input {
+        padding: 8px 12px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #fff;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        color: black;
+    }
+
+    button {
+        padding: 8px 16px;
+        background-color: #e0e0e0;  
+        color: black;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+        background-color: #ccc;  
+    }
+
+    #map {
+        height: 90vh;
+        width: 100%;
+    }
+</style>
+
+</head>
+<body>
+
+<div class="filter-bar">
+    <a href="/home" class="menu-item">
+        <img src="{{ url_for('static', filename='home.png') }}" alt="Home" style="height: 24px;"> Home
+    </a>
+
+    <label>Species:
+        <select id="speciesFilter"><option value="">Loading...</option></select>
+    </label>
+    <label>Dataset:
+        <select id="datasetFilter"><option value="">Loading...</option></select>
+    </label>
+    <label>Reserve:
+        <select id="reserveFilter"><option value="">Loading...</option></select>
+    </label>
+    <label>Status:
+        <select id="plantedNativeFilter">
+            <option value="">All</option>
+            <option value="Native">Native</option>
+            <option value="Exotic">Exotic</option>
+            <option value="Planted Native">Planted Native</option>
+            <option value="unknown origin">Unknown Origin</option>
+            <option value="not observed">Not Observed in the Field</option>
+        </select>
+    </label>
+    <label>Year Range:
+        <select id="yearFilterStart"><option value="">All</option></select>
+        -
+        <select id="yearFilterEnd"><option value="">All</option></select>
+    </label>
+    <label>Threatened Status:
+        <select id="threatenedStatusFilter"><option value="">Loading...</option></select>
+    </label>
+
+    <button onclick="loadObservations()">Filter</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+<script>
+    const map = L.map('map').setView([-33.906268, 151.002871], 10); 
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markerLayer = L.markerClusterGroup();
+
+    function populateFilters() {
+        fetch('/api/map_filters')
+            .then(res => res.json())
+            .then(data => {
+                const speciesSel = document.getElementById('speciesFilter');
+                const datasetSel = document.getElementById('datasetFilter');
+                const reserveSel = document.getElementById('reserveFilter');
+                const yearSelStart = document.getElementById('yearFilterStart');
+                const yearSelEnd = document.getElementById('yearFilterEnd');
+                const threatenedStatusSel = document.getElementById('threatenedStatusFilter');
+
+                [speciesSel, datasetSel, reserveSel, yearSelStart, yearSelEnd, threatenedStatusSel].forEach(sel => sel.innerHTML = '<option value="">All</option>');
+
+                data.species.forEach(s => speciesSel.innerHTML += `<option value="${s}">${s}</option>`);
+                data.datasets.forEach(d => datasetSel.innerHTML += `<option value="${d}">${d}</option>`);
+                data.reserves.forEach(r => reserveSel.innerHTML += `<option value="${r}">${r}</option>`);
+
+                data.years.forEach(y => {
+                    yearSelStart.innerHTML += `<option value="${y}">${y}</option>`;
+                    yearSelEnd.innerHTML += `<option value="${y}">${y}</option>`;
+                });
+
+                if (data.years.length > 0) {
+                    yearSelStart.value = data.years[0]; 
+                    yearSelEnd.value = data.years[data.years.length - 1];
+                }
+
+                data.threatened_statuses.forEach(status => {
+                    const displayStatus = status === "" ? "None" : status;
+                    threatenedStatusSel.innerHTML += `<option value="${status}">${displayStatus}</option>`;
+                });
+            });
+    }
+
+    function loadObservations() {
+        if (markerLayer) {
+            map.removeLayer(markerLayer);
+        }
+        markerLayer = L.markerClusterGroup();
+
+        const species = document.getElementById('speciesFilter').value;
+        const dataset = document.getElementById('datasetFilter').value;
+        const reserve = document.getElementById('reserveFilter').value;
+        const plantedNative = document.getElementById('plantedNativeFilter').value;
+        const yearStart = document.getElementById('yearFilterStart').value;
+        const yearEnd = document.getElementById('yearFilterEnd').value;
+        const threatenedStatus = document.getElementById('threatenedStatusFilter').value;
+
+        const params = new URLSearchParams();
+        if (species) params.append('species', species);
+        if (dataset) params.append('dataset', dataset);
+        if (reserve) params.append('reserve', reserve);
+        if (plantedNative) params.append('planted_native', plantedNative);
+        if (yearStart) params.append('start_year', yearStart);
+        if (yearEnd) params.append('end_year', yearEnd);
+        if (threatenedStatus) params.append('rare', threatenedStatus);
+
+        let url = '/api/map_data';
+        if (params.toString()) url += '?' + params.toString();
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(observation => {
+                    const lat = parseFloat(observation.decimalLatitude);
+                    const lng = parseFloat(observation.decimalLongitude);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        const marker = L.circleMarker([lat, lng], {
+                            radius: 5,
+                            color: 'blue',
+                            fillOpacity: 0.6
+                        }).bindPopup(
+                            `<strong>Species:</strong> ${observation.scientificName || 'N/A'}<br>` +
+                            `<strong>Dataset:</strong> ${observation.datasetName || 'N/A'}<br>` +
+                            `<strong>Year:</strong> ${observation.year || 'N/A'}<br>` +
+                            `<strong>Reserve:</strong> ${observation.reserve_name || 'N/A'}<br>` +
+                            `<strong>Latitude:</strong> ${lat.toFixed(4)}<br>` +
+                            `<strong>Longitude:</strong> ${lng.toFixed(4)}`
+                        );
+                        markerLayer.addLayer(marker);
+                    }
+                });
+                map.addLayer(markerLayer);
+            });
+    }
+
+    populateFilters();
+    loadObservations();
+</script>
+
+</body>
+</html>

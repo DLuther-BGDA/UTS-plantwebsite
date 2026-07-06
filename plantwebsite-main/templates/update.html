@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Update Data</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="top-bar">
+        <div class="menu-item-container">
+            <div class="menu-item" onclick="window.location.href='/flora_dashboard';">Flora</div>
+            <div class="menu-item" onclick="window.location.href='/fauna_dashboard';">Fauna</div>
+            <div class="menu-item" onclick="window.location.href='/report';">Report</div>
+            {% if is_admin %}
+            <div class="menu-item" onclick="window.location.href='/update_data';">Update Data</div>
+            {% endif %}
+        </div>
+
+        <div class="user-container">
+            <div class="username">
+                {{ username }}
+            </div>
+
+            <div class="hamburger-menu" onclick="toggleHamburgerMenu()">
+                &#9776; 
+            </div>
+
+            <div id="hamburger-dropdown" class="dropdown-content" style="display: none;">
+                {% if is_admin %}
+                <a href="/settings">Settings</a>
+                {% endif %}
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="left">
+            <h2>Upload New Data</h2>
+            <div class="section">
+                <button onclick="upload_word()">Upload from Word</button>
+            </div>
+            <div class="section">
+                <button onclick="upload_excel()">Upload from Excel</button>
+            </div>
+            <div class="section">
+                <button onclick="window.location.href='/manual_upload';">Manual Upload</button>
+            </div>
+        </div>
+
+        <div class="right">
+            <h2>Update Existing</h2>
+            
+
+            <div class="section">
+                <button onclick="window.location.href='/manual_update';">Search Data</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+
+        const genusOptions = {{ genusOptions|default('{}')|tojson|safe }};
+        const speciesOptions = {{ speciesOptions|default('{}')|tojson|safe }};
+        const familyOptions = {{ familyOptions|default('{}')|tojson|safe }};
+        const reserveOptions = {{ reserveOptions|default('{}')|tojson|safe }};
+        const filtered_result = {{ filtered_result|default('{}')|tojson|safe }};
+
+        function filterOptions(type, options) {
+            const input = document.getElementById(type).value.toLowerCase();
+            const suggestionsContainer = document.getElementById(type + '-suggestions');
+            suggestionsContainer.innerHTML = '';
+
+            if (input === '') {
+
+                options.forEach(option => {
+                    addSuggestion(suggestionsContainer, type, option);
+                });
+            } else {
+                const filteredOptions = options.filter(option => option.toLowerCase().includes(input));
+                filteredOptions.forEach(option => {
+                    addSuggestion(suggestionsContainer, type, option);
+                });
+            }
+        }
+
+        function addSuggestion(container, type, option) {
+            const div = document.createElement('div');
+            div.classList.add('suggestion-item');
+            div.textContent = option;
+            div.onclick = () => selectOption(type, option);
+            container.appendChild(div);
+        }
+
+        function selectOption(type, option) {
+            document.getElementById(type).value = option;
+            hideSuggestions(type); 
+        }
+
+        function autocompleteOnEnter(event, type, options) {
+            const input = document.getElementById(type).value.toLowerCase();
+            const suggestionsContainer = document.getElementById(type + '-suggestions');
+
+            if (event.key === "Enter") {
+                event.preventDefault(); 
+
+                const filteredOptions = options.filter(option => option.toLowerCase().includes(input));
+                if (filteredOptions.length > 0) {
+                    selectOption(type, filteredOptions[0]);
+                }
+            }
+        }
+
+        function showSuggestions(type) {
+            const suggestionsDiv = document.getElementById(type + '-suggestions');
+            suggestionsDiv.innerHTML = ''; 
+
+            const input = document.getElementById(type);
+
+            const options = {
+                genus: genusOptions,
+                species: speciesOptions,
+                family: familyOptions,
+                reserve: reserveOptions
+            };
+
+            options[type].forEach(name => {
+                addSuggestion(suggestionsDiv, type, name);
+            });
+
+            const sidebar = document.querySelector('.sidebar'); 
+            const inputLeftOffset = input.getBoundingClientRect().left; 
+            const sidebarLeftOffset = sidebar.getBoundingClientRect().left; 
+            const positionOffset = 5; 
+
+            suggestionsDiv.style.left = `${inputLeftOffset - sidebarLeftOffset + positionOffset}px`;
+            suggestionsDiv.style.top = `${input.offsetTop + input.offsetHeight}px`; 
+            suggestionsDiv.style.display = 'block'; 
+        }
+
+        function hideSuggestions(type) {
+            const suggestionsDiv = document.getElementById(type + '-suggestions');
+            suggestionsDiv.innerHTML = ''; 
+            suggestionsDiv.style.display = 'none'; 
+        }
+
+        document.addEventListener('click', function(event) {
+            const types = ['genus', 'species', 'family', 'reserve'];
+            types.forEach(type => {
+                const input = document.getElementById(type);
+                const suggestionsDiv = document.getElementById(type + '-suggestions');
+                if (!input.contains(event.target) && !suggestionsDiv.contains(event.target)) {
+                    hideSuggestions(type); 
+                }
+            });
+        });
+
+        async function getTableData(filter) {
+
+            return filtered_result; 
+        }
+
+        async function generateTable(filter) {
+            const table = document.getElementById('table');
+            const tableHead = table.querySelector('thead');
+            const tableBody = table.querySelector('tbody');
+
+            tableBody.innerHTML = ''; 
+
+            const data = await getTableData(filter);
+            console.log('data: ', data);
+
+            if (data.length === 0) return;
+
+            const headers = Object.keys(data[0]);  
+            console.log(headers);
+            tableHead.innerHTML = `<tr><th></th>${headers.map(header => `<th>${header}</th>`).join('')}</tr>`;
+            console.log(tableHead.innerHTML);
+
+            data.forEach(function(row) {
+                const rowHTML = `
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        ${headers.map(header => `<td>${row[header]}</td>`).join('')}
+                    </tr>
+                `;
+                tableBody.innerHTML += rowHTML;
+            });
+        }
+
+        generateTable('');
+
+        function toggleHamburgerMenu() {
+            var dropdown = document.getElementById('hamburger-dropdown');
+            if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.hamburger-menu')) {
+                var dropdown = document.getElementById('hamburger-dropdown');
+                if (dropdown.style.display === 'block') {
+                    dropdown.style.display = 'none';
+                }
+            }
+        }
+
+    </script>
+</body>
+
+</html>

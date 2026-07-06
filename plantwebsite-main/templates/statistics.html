@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+
+        .stat-card {
+            background-color: #ffffff;
+            border-radius: 0.75rem; 
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); 
+            padding: 1.5rem; 
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; 
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px); 
+            box-shadow: 0 15px 20px rgba(0, 0, 0, 0.15); 
+        }
+
+        .stat-value {
+            font-size: 2.5rem; 
+            font-weight: bold;
+            color: #1d4ed8; 
+            margin-bottom: 0.5rem; 
+        }
+
+        .stat-label {
+            font-size: 1.125rem; 
+            color: #4b5563;
+        }
+
+        .section-heading {
+            font-size: 2rem; 
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 2rem; 
+            text-align: center;
+            position: relative; 
+            padding-bottom: 0.5rem;
+        }
+
+        .section-heading::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 70px; 
+            height: 3px; 
+            background-color: #3b82f6; 
+            border-radius: 2px;
+        }
+
+        .list-group {
+            background-color: #ffffff;
+            border-radius: 0.75rem; 
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); 
+            padding: 1rem; 
+            margin-bottom: 1.5rem; 
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center; 
+            padding: 0.75rem 0; 
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item-label {
+            font-weight: 500;
+            color: #374151;
+            flex-grow: 1; 
+            font-size: 1rem; 
+        }
+
+        .list-item-value {
+            color: #1f2937;
+            font-weight: bold;
+            font-size: 1rem; 
+        }
+
+        .top-bar {
+            background-color: #1f2937; 
+            color: white;
+            padding: 10px 30px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+        }
+
+        .menu-item {
+            padding: 8px 16px; 
+            cursor: pointer;
+            background-color: #4a5568; 
+            color: white; 
+            border: none; 
+            border-radius: 0.375rem; 
+            margin-right: 10px; 
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: 500; 
+            font-size: 0.95rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+        }
+
+        .menu-item:hover {
+            background-color: #2d3748; 
+            transform: translateY(-2px); 
+        }
+
+        .user-container {
+            display: flex;
+            align-items: center;
+            position: relative; 
+        }
+
+        .username {
+            margin-right: 15px; 
+            font-weight: 500;
+            font-size: 1rem; 
+        }
+
+        .hamburger-menu {
+            font-size: 1.6em; 
+            cursor: pointer;
+            color: white;
+        }
+
+        .dropdown-content {
+            position: absolute;
+            background-color: #ffffff; 
+            min-width: 140px; 
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 10; 
+            right: 0; 
+            top: 50px; 
+            border-radius: 0.375rem;
+            overflow: hidden; 
+        }
+
+        .dropdown-content a {
+            color: #1f2937; 
+            padding: 10px 14px; 
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.2s ease;
+            font-size: 0.95rem; 
+        }
+
+        .dropdown-content a:hover {
+            background-color: #e2e8f0; 
+        }
+
+        .menu-item-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px; 
+        }
+
+        @media (max-width: 768px) {
+            .menu-item-container {
+                display: none; 
+            }
+            .hamburger-menu {
+                display: block; 
+            }
+            .user-container {
+                margin-left: auto; 
+            }
+            .section-heading {
+                font-size: 1.75rem; 
+            }
+            .stat-value {
+                font-size: 2rem; 
+            }
+            .stat-label {
+                font-size: 0.95rem; 
+            }
+        }
+        @media (min-width: 769px) {
+            .hamburger-menu {
+                display: none; 
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <div class="top-bar">
+        <div class="menu-item-container">
+            <!-- Home button added here with the icon -->
+            <div class="menu-item" onclick="window.location.href='/home';">
+                <img src="{{ url_for('static', filename='home.png') }}" alt="Home" style="height: 24px;"> Home
+            </div>
+            <div class="menu-item" onclick="window.location.href='/flora_dashboard';">Filter Flora</div>
+            <div class="menu-item" onclick="window.location.href='/fauna_dashboard';">Filter Fauna</div>
+            <div class="menu-item" onclick="window.location.href='/report';">Report</div>
+            <div class="menu-item" onclick="window.location.href='/map';">View Map</div>
+            <div class="menu-item" onclick="window.location.href='/statistics';">Statistics</div>
+            {% if is_admin %}
+            <div class="menu-item" onclick="window.location.href='/update_data';">Update Data</div>
+            {% endif %}
+        </div>
+
+        <div class="user-container">
+            <div class="username">
+                Hello, {{ username }}!
+            </div>
+
+            <div class="hamburger-menu" onclick="toggleHamburgerMenu()">
+                &#9776;
+            </div>
+
+            <div id="hamburger-dropdown" class="dropdown-content" style="display: none;">
+                {% if is_admin %}
+                <a href="/settings">Settings</a>
+                {% endif %}
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-6 max-w-7xl"> {# Reduced container padding #}
+        <h1 class="section-heading">Overall Statistics</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"> {# Reduced grid gap #}
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_flora_occurrences|default(0) }}</div> {# Corrected key #}
+                <div class="stat-label">Total Flora Occurrences</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.distinct_flora_species|default(0) }}</div> {# Corrected key #}
+                <div class="stat-label">Distinct Flora Species</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.flora_occurrences_with_coords|default(0) }}</div> {# Corrected key #}
+                <div class="stat-label">Occurrences with Coordinates</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.distinct_flora_datasets|default(0) }}</div> {# Corrected key #}
+                <div class="stat-label">Distinct Datasets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.distinct_flora_reserves|default(0) }}</div> {# Corrected key #}
+                <div class="stat-label">Distinct Flora Reserves</div>
+            </div>
+             <div class="stat-card">
+                <div class="stat-value">{{ stats.total_fauna_records|default(0) }}</div>
+                <div class="stat-label">Total Fauna Records</div>
+            </div>
+             <div class="stat-card">
+                <div class="stat-value">{{ stats.distinct_fauna_species|default(0) }}</div>
+                <div class="stat-label">Distinct Fauna Species</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.distinct_fauna_genera|default(0) }}</div>
+                <div class="stat-label">Distinct Fauna Genera</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.distinct_fauna_families|default(0) }}</div>
+                <div class="stat-label">Distinct Fauna Families</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.distinct_fauna_reserves|default(0) }}</div>
+                <div class="stat-label">Distinct Fauna Reserves</div>
+            </div>
+        </div>
+
+        <h2 class="section-heading mt-12">Top 5 Most Common Flora Species</h2> {# Adjusted margin-top #}
+        <div class="list-group">
+            {% if stats.top_5_flora_species %} {# Corrected key #}
+                {% for species in stats.top_5_flora_species %} {# Corrected key #}
+                    <div class="list-item">
+                        <span class="list-item-label">{{ species.scientific_name|default('N/A') }}</span>
+                        <span class="list-item-value">{{ species.count|default(0) }}</span>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-gray-500 p-4 italic">No data available for top species. Please check back later.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function toggleHamburgerMenu() {
+            var dropdown = document.getElementById('hamburger-dropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        window.onclick = function (event) {
+            if (!event.target.matches('.hamburger-menu') && !event.target.closest('.user-container')) {
+                var dropdown = document.getElementById('hamburger-dropdown');
+                if (dropdown.style.display === 'block') {
+                    dropdown.style.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

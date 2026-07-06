@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="top-bar">
+        <!-- Left Side: Flora, Fauna, Update Data, and Report Buttons -->
+        <div class="menu-item-container">
+            <div class="menu-item" onclick="window.location.href='/flora_dashboard';">Filter Flora</div>
+            <div class="menu-item" onclick="window.location.href='/fauna_dashboard';">Filter Fauna</div>
+            <!-- Add Report Button -->
+            <div class="menu-item" onclick="window.location.href='/report';">Report</div>
+            {% if is_admin %}
+            <div class="menu-item" onclick="window.location.href='/update_data';">Update Data</div>
+            {% endif %}
+
+        </div>
+
+        <!-- Right Side: Username and Hamburger Menu -->
+        <div class="user-container">
+            <!-- Username Display -->
+            <div class="username">
+                {{ username }}
+            </div>
+
+            <!-- Hamburger Menu -->
+            <div class="hamburger-menu" onclick="toggleHamburgerMenu()">
+                &#9776; <!-- This is the hamburger icon -->
+            </div>
+
+            <!-- Dropdown Menu -->
+            <div id="hamburger-dropdown" class="dropdown-content" style="display: none;">
+                <a href="/settings">Settings</a>
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content for Settings -->
+    <div class="container">
+        <h2>Settings</h2>
+        <!-- Button to manage users page -->
+        <button class="manage-users-btn" onclick="window.location.href='/manage_users';">Manage Users</button>
+    </div>
+
+    <script>
+        function toggleHamburgerMenu() {
+            var dropdown = document.getElementById('hamburger-dropdown');
+            if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.hamburger-menu')) {
+                var dropdown = document.getElementById('hamburger-dropdown');
+                if (dropdown.style.display === 'block') {
+                    dropdown.style.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

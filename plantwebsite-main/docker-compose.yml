@@ -1,0 +1,52 @@
+    version: '3.8'
+
+    services:
+      db:
+        image: postgres:16-alpine
+        container_name: biogeoda_postgres_db
+        restart: always
+        environment:
+          POSTGRES_DB: flora_database
+          POSTGRES_USER: ${POSTGRES_USER}
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        ports:
+          - "5432:5432"
+        volumes:
+          - db_data:/var/lib/postgresql/data
+
+      app:
+        build: .
+        container_name: biogeoda_flask_app
+        ports:
+          - "3000:8000"
+        environment:
+          DATABASE_URL: ${DATABASE_URL}
+          SECRET_KEY: ${SECRET_KEY}
+          SECURITY_PASSWORD_SALT: ${SECURITY_PASSWORD_SALT}
+          SECRET_INITIAL_PASSWORD: ${SECRET_INITIAL_PASSWORD}
+          MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER}
+          MAIL_SERVER: ${MAIL_SERVER}
+          MAIL_PORT: ${MAIL_PORT}
+          MAIL_USE_TLS: ${MAIL_USE_TLS}
+          MAIL_USE_SSL: ${MAIL_USE_SSL}
+          MAIL_USERNAME: ${MAIL_USERNAME}
+          MAIL_PASSWORD: ${MAIL_PASSWORD}
+          POSTGRES_USER: ${POSTGRES_USER} 
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} 
+          POSTGRES_DB: ${POSTGRES_DB} 
+          POSTGRES_HOST: db
+          POSTGRES_PORT: 5432
+          PORT: ${PORT}
+        depends_on:
+          - db
+        volumes:
+          - .:/app
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+          interval: 30s
+          timeout: 10s
+          retries: 5
+
+    volumes:
+      db_data:
+    

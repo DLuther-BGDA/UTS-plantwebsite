@@ -1,0 +1,5 @@
+LOAD DATABASE
+    FROM sqlite:///database.db
+    INTO postgresql://flora_database_user:changeme123@db:5432/flora_database
+WITH include drop, create tables, create indexes, reset sequences, foreign keys
+;

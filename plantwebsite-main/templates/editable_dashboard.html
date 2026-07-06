@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+
+        function adjustTableHeight() {
+            var topbarHeight = document.querySelector('.top-bar').offsetHeight;
+            var headingHeight = document.querySelector('.update-bar').offsetHeight;
+
+            var availableHeight = window.innerHeight - topbarHeight - headingHeight;
+            var tableWrapper = document.querySelector('.table-wrapper');
+            tableWrapper.style.height = availableHeight + 'px';
+        }
+
+        window.onload = function() {
+            adjustTableHeight();
+        }
+
+        window.onresize = adjustTableHeight;
+
+        var columnNameFlora = ["ID","Genus","Species","Family","Common_Name","Conservation_Status","Location_Name","Native","Listed_R&E","Locally_R&E","File","Year"];
+        var columnNameFauna = ["ID","Genus","Species","Family","Common_Name","Class_Name","Conservation_Status","Location_Name","Native","Listed_R&E","Locally_R&E","File","Year"];
+
+        const genusOptions = {{ genusOptions|default('{}')|tojson|safe }};
+        const speciesOptions = {{ speciesOptions|default('{}')|tojson|safe }};
+        const familyOptions = {{ familyOptions|default('{}')|tojson|safe }};
+        const reserveOptions = {{ reserveOptions|default('{}')|tojson|safe }};
+        const filtered_result = {{ filtered_result|default('{}')|tojson|safe }};
+        const isFlora = {{ is_flora | tojson|safe }};
+
+        function filterOptions(type, options) {
+            const input = document.getElementById(type).value.toLowerCase();
+            const suggestionsContainer = document.getElementById(type + '-suggestions');
+            suggestionsContainer.innerHTML = '';
+
+            if (input === '') {
+
+                options.forEach(option => {
+                    addSuggestion(suggestionsContainer, type, option);
+                });
+            } else {
+                const filteredOptions = options.filter(option => option.toLowerCase().includes(input));
+                filteredOptions.forEach(option => {
+                    addSuggestion(suggestionsContainer, type, option);
+                });
+            }
+        }
+
+        function addSuggestion(container, type, option) {
+            const div = document.createElement('div');
+            div.classList.add('suggestion-item');
+            div.textContent = option;
+            div.onclick = () => selectOption(type, option);
+            container.appendChild(div);
+        }
+
+        function selectOption(type, option) {
+            document.getElementById(type).value = option;
+            hideSuggestions(type); 
+
+            submitForm();
+        }
+
+        function autocompleteOnEnter(event, type, options) {
+            const input = document.getElementById(type).value.toLowerCase();
+            const suggestionsContainer = document.getElementById(type + '-suggestions');
+
+            if (event.key === "Enter") {
+                event.preventDefault(); 
+
+                const filteredOptions = options.filter(option => option.toLowerCase().includes(input));
+                if (filteredOptions.length > 0) {
+                    selectOption(type, filteredOptions[0]);
+                }
+            }
+        }
+
+        function showSuggestions(type) {
+            const suggestionsDiv = document.getElementById(type + '-suggestions');
+            suggestionsDiv.innerHTML = ''; 
+
+            const input = document.getElementById(type);
+
+            const options = {
+                genus: genusOptions,
+                species: speciesOptions,
+                family: familyOptions,
+                reserve: reserveOptions
+            };
+
+            options[type].forEach(name => {
+                addSuggestion(suggestionsDiv, type, name);
+            });
+
+            const sidebar = document.querySelector('.sidebar'); 
+            const inputLeftOffset = input.getBoundingClientRect().left; 
+            const sidebarLeftOffset = sidebar.getBoundingClientRect().left; 
+            const positionOffset = 5; 
+
+            suggestionsDiv.style.left = `${inputLeftOffset - sidebarLeftOffset + positionOffset}px`;
+            suggestionsDiv.style.top = `${input.offsetTop + input.offsetHeight}px`; 
+            suggestionsDiv.style.display = 'block'; 
+        }
+
+        function hideSuggestions(type) {
+            const suggestionsDiv = document.getElementById(type + '-suggestions');
+            suggestionsDiv.innerHTML = ''; 
+            suggestionsDiv.style.display = 'none'; 
+        }
+
+        function submitForm() {
+            fillInSelectedReserves();
+            document.querySelector('form').submit();
+        }
+
+        function removeReserve(button, reserve) {
+            const selectedReservesContainer = document.querySelector('.selected-reserves');
+            const reserveItem = button.closest('.reserve-item');
+            if (reserveItem) {
+                reserveItem.remove();
+            }
+            submitForm();
+        }
+
+        function fillInSelectedReserves() {
+            const selectedReserveElements = document.querySelectorAll('.selected-reserves .reserve-item span');
+            let selectedReserves = [];
+
+            selectedReserveElements.forEach(function(element) {
+                selectedReserves.push(element.textContent.trim());
+            });
+
+            document.getElementById('selected_reserves_input').value = selectedReserves.join(',');
+        }
+
+        document.addEventListener('click', function(event) {
+            const types = ['genus', 'species', 'family', 'reserve'];
+            types.forEach(type => {
+                const input = document.getElementById(type);
+                const suggestionsDiv = document.getElementById(type + '-suggestions');
+                if (!input.contains(event.target) && !suggestionsDiv.contains(event.target)) {
+                    hideSuggestions(type); 
+                }
+            });
+        });
+
+        let currentInputRow = null;
+
+        function showInputRow(row) {
+            if (currentInputRow) {
+                hideInputRow(); 
+            }
+
+            let table = document.getElementById("data-table");
+            let rowIndex = row.rowIndex;
+
+            let newRow = table.insertRow(rowIndex + 1);
+            newRow.classList.add("input-row");
+
+            for (let i = 0; i < row.cells.length; i++) {
+                let newCell = newRow.insertCell(i);
+
+                if (i == 0) {
+                    let submitButton = document.createElement('button');
+                    submitButton.textContent = "Submit Data";
+                    submitButton.style.width = "100%"; 
+                    submitButton.style.padding = "10px";
+                    submitButton.onclick = function() {
+                        submitData(row, newRow);
+                    };
+                    newCell.appendChild(submitButton);
+                } else {
+                    let container = document.createElement('div');
+                    container.style.display = "flex";
+                    container.style.flexDirection = "column"; 
+
+                    let checkboxContainer = document.createElement('div');
+                    checkboxContainer.style.display = "inline-flex"; 
+                    checkboxContainer.style.alignItems = "center"; 
+
+                    if (isFlora){
+                        if (i == 6 || i == 9 ){
+
+                        } else {
+                            let checkbox = document.createElement('input');
+                            checkbox.type = "checkbox";
+                            checkbox.className = "checkbox";
+                            checkbox.style.margin = "0"; 
+                            checkbox.style.padding = "0"; 
+
+                            let checkboxLabel = document.createElement('span');
+                            checkboxLabel.textContent = "UpdateAll";
+                            checkboxLabel.style.marginLeft = "0";
+
+                            checkboxContainer.appendChild(checkbox);
+                            checkboxContainer.appendChild(checkboxLabel);
+                        }
+                    } else {
+                        if (i == 7 || i== 10) {
+
+                        } else {
+                            let checkbox = document.createElement('input');
+                            checkbox.type = "checkbox";
+                            checkbox.className = "checkbox";
+                            checkbox.style.margin = "0"; 
+                            checkbox.style.padding = "0"; 
+
+                            let checkboxLabel = document.createElement('span');
+                            checkboxLabel.textContent = "UpdateAll";
+                            checkboxLabel.style.marginLeft = "0";
+
+                            checkboxContainer.appendChild(checkbox);
+                            checkboxContainer.appendChild(checkboxLabel);
+                        }
+                    }
+
+                    let textarea = document.createElement('textarea');
+                    textarea.value = row.cells[i].textContent; 
+                    textarea.className = "textarea"; 
+                    textarea.style.resize = "none";
+                    textarea.style.margin = "0"; 
+                    textarea.style.padding = "0";
+                    textarea.style.width = "100%"; 
+                    textarea.style.height = "auto"; 
+                    textarea.style.boxSizing = "border-box";
+
+                    container.appendChild(checkboxContainer);
+                    container.appendChild(textarea);
+
+                    newCell.appendChild(container);
+                }
+            }
+
+            currentInputRow = newRow;
+
+            row.classList.add("selected-row");
+
+            document.addEventListener('click', handleOutsideClick, true);
+        }
+
+        function hideInputRow(){
+            if (currentInputRow) {
+                currentInputRow.remove();
+                currentInputRow = null;
+                let selectedRows = document.querySelectorAll('.selected-row');
+                selectedRows.forEach(row => row.classList.remove('selected-row'));
+            }
+            document.removeEventListener('click', handleOutsideClick, true);
+        }
+
+        function handleOutsideClick(event) {
+            let table = document.getElementById("data-table");
+            if (!table.contains(event.target)) {
+                hideInputRow();
+            }
+        }
+
+        function submitData(originalRow, newRow) {
+
+            const tableWrapper = document.getElementById('table-wrapper');
+            let scrollPosition = tableWrapper.scrollTop;
+
+            let originalData = {};
+            let newData = {};
+            let replaceAll = [];
+            if (isFlora) {
+                for (let i = 0; i < originalRow.cells.length; i++) {
+                    originalData[columnNameFlora[i]] = originalRow.cells[i].innerText.trim();
+                }
+                for (let i = 1; i < newRow.cells.length; i++) {
+
+                    let textarea = newRow.cells[i].querySelector('.textarea');
+                    let checkbox = newRow.cells[i].querySelector('.checkbox');
+                    if (textarea) {
+                        console.log(textarea.value);
+                        newData[columnNameFlora[i]] = textarea.value; 
+                    }
+
+                    if (checkbox) {
+                        if (checkbox.checked) {
+                            replaceAll.push(columnNameFlora[i])
+                        }
+                    }
+                }
+                console.log("Original Data:", originalData);
+                console.log("New Data:", newData);
+                console.log("Replace All:", replaceAll)
+            } else {
+                for (let i = 0; i < originalRow.cells.length; i++) {
+                    originalData[columnNameFauna[i]] = originalRow.cells[i].innerText.trim();
+                }
+                for (let i = 1; i < newRow.cells.length; i++) {
+
+                    let textarea = newRow.cells[i].querySelector('.textarea');
+                    let checkbox = newRow.cells[i].querySelector('.checkbox');
+                    if (textarea) {
+                        console.log(textarea.value);
+                        newData[columnNameFauna[i]] = textarea.value; 
+                    }
+
+                    if (checkbox) {
+                        if (checkbox.checked) {
+                            replaceAll.push(columnNameFauna[i])
+                        }
+                    }
+                }
+                console.log("Original Data:", originalData);
+                console.log("New Data:", newData);
+                console.log("Replace All:", replaceAll)
+            }
+
+            if (isFlora) {
+                fetch('/save_table_flora', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({originalData,newData,replaceAll})
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errorData => {
+                            throw new Error(`Error: ${response.status}, ${errorData.error}`);
+                        });
+                    }
+                    return response.json()
+                })
+                .then(result => {
+                    console.log('Server response:', result);
+                    alert('Data saved successfully!');
+                    submitForm();
+
+                })
+                .catch(error => {
+                    console.error('Error saving data:', error);
+                    alert('Error saving data.');
+                });
+            } else {
+                fetch('/save_table_fauna', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({originalData,newData,replaceAll})
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errorData => {
+                            throw new Error(`Error: ${response.status}, ${errorData.error}`);
+                        });
+                    }
+                    return response.json()
+                })
+                .then(result => {
+                    console.log('Server response:', result);
+                    alert('Data saved successfully!');
+                    submitForm();
+
+                })
+                .catch(error => {
+                    console.error('Error saving data:', error);
+                    alert('Error saving data.');
+                });
+            }
+        }
+
+        function clearSearch(type) {
+
+            const inputField = document.getElementById(type);
+            inputField.value = '';
+
+            hideSuggestions(type);
+
+            submitForm();
+        }
+
+        function toggleHamburgerMenu() {
+            var dropdown = document.getElementById('hamburger-dropdown');
+            if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.hamburger-menu')) {
+                var dropdown = document.getElementById('hamburger-dropdown');
+                if (dropdown.style.display === 'block') {
+                    dropdown.style.display = 'none';
+                }
+            }
+        }
+    </script>
+
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <!-- Left Side: Flora and Fauna Buttons -->
+        <div class="menu-item-container">
+            <div class="menu-item" onclick="window.location.href='/flora_dashboard';">Flora</div>
+            <div class="menu-item" onclick="window.location.href='/fauna_dashboard';">Fauna</div>
+        </div>
+
+        <!-- Right Side: Username and Hamburger Menu -->
+        <div class="user-container">
+            <!-- Username Display -->
+            <div class="username">
+                {{ username }}
+            </div>
+
+            <!-- Hamburger Menu -->
+            <div class="hamburger-menu" onclick="toggleHamburgerMenu()">
+                &#9776; <!-- This is the hamburger icon -->
+            </div>
+
+            <!-- Dropdown Menu -->
+            <div id="hamburger-dropdown" class="dropdown-content" style="display: none;">
+                {% if is_admin %}
+                <a href="/settings">Settings</a>
+                {% endif %}
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="sidebar">
+            <h2>Filter By</h2>
+            {% if is_flora %}
+                <form id = "filter_flora" action="/filter_flora" method="post">
+            {% else %}
+                <form id = "filter_fauna" action="/filter_fauna" method="post">
+            {% endif %}
+                <label for="genus-select">Genus</label></br>
+                <div class="input-wrapper">
+                    <input type="text" id="genus" name="genus" value= "{{ genus }}"
+                        onfocus="showSuggestions('genus')"
+                        oninput="filterOptions('genus', genusOptions)"
+                        onkeydown="autocompleteOnEnter(event, 'genus', genusOptions)"
+                        autocomplete="off">
+                    <button type="button" onclick="clearSearch('genus')">&times;</button>
+                </div>
+                <div id="genus-suggestions" class="suggestions"></div>
+
+                <label for="species-select">Species</label></br>
+                <div class="input-wrapper">
+                    <input type="text" id="species" name="species" value="{{ species }}"
+                        onfocus="showSuggestions('species')"
+                        oninput="filterOptions('species', speciesOptions)"
+                        onkeydown="autocompleteOnEnter(event, 'species', speciesOptions)"
+                        autocomplete="off">
+                    <button type="button" onclick="clearSearch('species')">&times;</button>
+                </div>
+                <div id="species-suggestions" class="suggestions"></div></br>
+
+                <label for="family-select">Family Name</label></br>
+                <div class="input-wrapper">
+                    <input type="text" id="family" name="family" value="{{ family }}"
+                        onfocus="showSuggestions('family')"
+                        oninput="filterOptions('family', familyOptions)"
+                        onkeydown="autocompleteOnEnter(event, 'family', familyOptions)"
+                        autocomplete="off">
+                    <button type="button" onclick="clearSearch('family')">&times;</button>
+                </div>
+                <div id="family-suggestions" class="suggestions"></div>
+
+                <label for="reserve-select">Reserves</label></br>
+                <div class="input-wrapper">
+                    <input type="text" id="reserve" name="reserve" value="{{ reserve }}"
+                        onfocus="showSuggestions('reserve')"
+                        oninput="filterOptions('reserve', reserveOptions)"
+                        onkeydown="autocompleteOnEnter(event, 'reserve', reserveOptions)"
+                        autocomplete="off">
+                </div>
+                <div id="reserve-suggestions" class="suggestions"></div>
+
+                <!-- Display Selected Reserves -->
+                <div class="selected-reserves">
+                    {% if selected_reserves %}
+                        {% for reserve in selected_reserves %}
+                            <div class="reserve-item">
+                                <span>{{ reserve }}</span>
+                                <button type="button" class="remove-reserve" onclick="removeReserve(this, '{{ reserve }}')">&times;</button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                <input type="hidden" name="selected_reserves_input" id="selected_reserves_input">
+
+                <label for="native-select">Exotic or Native</label>
+                <select id="native" name="native" onchange="submitForm()">
+                    <option value="">None</option>
+                    <option value="Exotic" {% if native == "Exotic" %} selected {% endif %}>Exotic</option>
+                    {% if is_flora %}
+                        <option value="Native" {% if native == "Native" %} selected {% endif %}> Planted Native</option>
+                    {% endif %}
+                </select>
+
+                <label for="rare-select"> Rare</label>
+                <select id="rare", name="rare" onchange="submitForm()">
+                    <option value="">None</option>
+                    <option value="listed-rare" {% if rare == "Listed Rare" %} selected {% endif %}>Listed Rare</option>
+                    <option value="locally-rare" {% if rare == "Locally Rare" %} selected {% endif %}>Locally Rare</option>
+                </select>
+
+            </form>
+        </div>
+
+        <div class="main-content">
+            {% if filtered_result %}
+            <div class = "update-bar">
+                {% if is_flora %}
+                    <h2>Flora Filtered Results (Select the tickbox to replace all matched data for the same species)</h2>
+                {% else %}
+                    <h2>Fauna Filtered Results (Select the tickbox to replace all matched data for the same species)</h2>
+                {% endif %}
+                <button type="button" onclick="window.location.href='/update_data';">Back</button>
+            </div>
+                {% if is_flora %}
+                    <div class = "table-wrapper" id = "table-wrapper">
+                        <table id = "data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Genus</th>
+                                    <th>Species</th>
+                                    <th>Family</th>
+                                    <th>Common Name</th>
+                                    <th>Conservation Status</th>
+                                    <th>Location Name</th>
+                                    <th>Native</th>
+                                    <th>Listed R&E</th>
+                                    <th>Locally R&E</th>
+                                    <th>File</th>
+                                    <th>Year</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in filtered_result %}
+                                <tr onclick = "showInputRow(this)">
+                                    <td>{{ row.ID }}</td>
+                                    <td>{{ row.Genus }}</td>
+                                    <td>{{ row.Species }}</td>
+                                    <td>{{ row.Taxonomy_Family }}</td>
+                                    <td>{{ row.Common_Name }}</td>
+                                    <td>{{ row.Conservation_Status }}</td>
+                                    <td>{{ row.Location_Name }}</td>
+                                    <td>{{ row.Native }}</td>
+                                    <td>{{ row['Listed_R&E'] }}</td>
+                                    <td>{{ row['Locally_R&E'] }}</td>
+                                    <td>{{ row.File }}</td>
+                                    <td>{{ row.Year }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                <div class = "table-wrapper" id = "table-wrapper">
+                        <table id = "data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Genus</th>
+                                    <th>Species</th>
+                                    <th>Family</th>
+                                    <th>Common Name</th>
+                                    <th>Class Name</th>
+                                    <th>Conservation Status</th>
+                                    <th>Location Name</th>
+                                    <th>Native</th>
+                                    <th>Listed R&E</th>
+                                    <th>Locally R&E</th>
+                                    <th>File</th>
+                                    <th>Year</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in filtered_result %}
+                                <tr onclick = "showInputRow(this)">
+                                    <td>{{ row.ID }}</td>
+                                    <td>{{ row.Genus }}</td>
+                                    <td>{{ row.Species }}</td>
+                                    <td>{{ row.Taxonomy_Family }}</td>
+                                    <td>{{ row.Common_Name }}</td>
+                                    <td>{{ row.Class_Name }}</td>
+                                    <td>{{ row.Conservation_Status }}</td>
+                                    <td>{{ row.Location_Name }}</td>
+                                    <td>{{ row.Native }}</td>
+                                    <td>{{ row['Listed_R&E'] }}</td>
+                                    <td>{{ row['Locally_R&E'] }}</td>
+                                    <td>{{ row['File'] }}</td>
+                                    <td>{{ row['Year'] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+
+            {% else %}
+                <p>No results found.</p>
+            {% endif %}
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

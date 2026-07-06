@@ -1,0 +1,53 @@
+{% extends "base_group3.html" %} {# Make sure this points to your new base for these pages #}
+
+{% block content %}
+    <div style="margin-bottom: 20px;">
+        <a href="/home" style="display: inline-flex; align-items: center; padding: 10px 15px; background-color: #e0e0e0; color: black; border: 1px solid #ccc; border-radius: 5px; text-decoration: none; transition: background-color 0.3s ease;">
+            <img src="{{ url_for('static', filename='home.png') }}" alt="Home" style="height: 24px; margin-right: 8px;"> Home
+        </a>
+    </div>
+
+    <h2>🌿 View Traits by Species</h2>
+
+    <form method="POST">
+        <label for="selected_species">Select one or more species:</label>
+        <select name="selected_species" id="selected_species" multiple size="10">
+            {% for species in species_list %}
+                <option value="{{ species }}" {% if species in selected_species %}selected{% endif %}>{{ species }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <input type="submit" value="Show Traits">
+    </form>
+
+    {% if species_data %}
+        {% for species, traits_by_group in species_data.items() %}
+            <h3>🌸 {{ species }}</h3>
+            {% if traits_by_group %}
+                {% for group_name, traits in traits_by_group.items() %}
+                    <h4><strong>{{ group_name }}</strong></h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Trait</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trait, value in traits.items() %}
+                                <tr>
+                                    <td>{{ trait.replace('_', ' ').title() }}</td>
+                                    <td>{{ value }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endfor %}
+            {% else %}
+                <p>No trait data available for {{ species }}.</p>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <div class="info-message">Please select at least one species.</div>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+
+        .add-user-form {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap; 
+        }
+
+        .add-user-form input[type="email"] {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            min-width: 200px; 
+        }
+
+        .add-user-form button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .add-user-form button:hover {
+            background-color: #45a049;
+        }
+
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .user-table th, .user-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .user-table th {
+            background-color: #f2f2f2;
+        }
+
+        .role-toggle-button {
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin-right: 5px; 
+        }
+
+        .role-toggle-button.admin {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .role-toggle-button.admin:hover {
+            background-color: #0056b3;
+        }
+
+        .role-toggle-button.user {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .role-toggle-button.user:hover {
+            background-color: #5a6268;
+        }
+
+        .delete-button {
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+            background-color: #dc3545; 
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
+        .flash-message {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .flash-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .flash-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .top-bar {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+        .menu-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #e0e0e0;
+            color: black;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+        }
+
+        .menu-item:hover {
+            background-color: #ccc;
+        }
+        .user-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .username {
+            margin-right: 15px;
+        }
+
+        .hamburger-menu {
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+
+        .dropdown-content {
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 120px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            right: 20px;
+            top: 50px; 
+        }
+        .menu-item-container {
+            display: flex;
+            flex-wrap: wrap; 
+            gap: 10px;       
+        }
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #ddd;
+        }
+
+        .container {
+            display: flex;
+            margin: 20px;
+            flex-wrap: wrap; 
+        }
+
+        .sidebar {
+            width: 250px;
+            padding: 20px;
+            background-color: #f8f8f8;
+            border-right: 1px solid #eee;
+            margin-bottom: 20px; 
+        }
+
+        .sidebar h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .sidebar label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .sidebar select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            border-radius: 5px;
+        }
+
+        .sidebar button[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff; 
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .sidebar button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .report-display {
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        .header-result {
+            margin-bottom: 15px;
+        }
+
+        .header-result h2 {
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto; 
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .flashes {
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .warning-message, .info-message, .no-users-message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .warning-message {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .info-message {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #eee;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="menu-item-container">
+            <!-- Home button added here with the icon -->
+            <div class="menu-item" onclick="window.location.href='/home';">
+                <img src="{{ url_for('static', filename='home.png') }}" alt="Home" style="height: 24px;"> Home
+            </div>
+            <div class="menu-item" onclick="window.location.href='/flora_dashboard';">Filter Flora</div>
+            <div class="menu-item" onclick="window.location.href='/fauna_dashboard';">Filter Fauna</div>
+            <div class="menu-item" onclick="window.location.href='/report';">Report</div>
+            <div class="menu-item" onclick="window.location.href='/map';">View Map</div> {# Added View Map button #}
+            <div class="menu-item" onclick="window.location.href='/statistics';">Statistics</div> {# Added Statistics button #}
+            {% if is_admin %}
+            <div class="menu-item" onclick="window.location.href='/update_data';">Update Data</div>
+            {% endif %}
+        </div>
+
+        <div class="user-container">
+            <div class="username">{{ username }}</div>
+            <div class="hamburger-menu" onclick="toggleHamburgerMenu()">&#9776;</div>
+
+            <div id="hamburger-dropdown" class="dropdown-content" style="display: none;">
+                {% if is_admin %}
+                <a href="/settings">Settings</a>
+                {% endif %}
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <h3>Select Report</h3>
+            <form action="/report" method="POST">
+                <div>
+                    <label for="report_type">Flora or Fauna</label>
+                    <select id="report_type" name="report_type">
+                        <option value="Flora" {% if is_flora %} selected {% endif %}>Flora</option>
+                        <option value="Fauna" {% if not is_flora %} selected {% endif %}>Fauna</option>
+                    </select>
+                </div>
+                <hr>
+                <div>
+                    <label for="report_name">Report Type</label>
+                    <select id="report_name" name="report_name">
+                        <option value="All Species" {% if report == "All Species" %} selected {% endif %}>All Species</option>
+                        <option value="Summary Report" {% if report == "Summary Report" %} selected {% endif %}>Summary Report</option>
+                        {# Only show Report by Reserve (Flora) if Flora is selected #}
+                        {% if is_flora %}
+                        <option value="Report by Reserve" {% if report == "Report by Reserve" %} selected {% endif %}>Report by Reserve (Flora)</option>
+                        {% endif %}
+                    </select>
+                </div>
+                <button type="submit">Generate Report</button>
+            </form>
+            <form action="/download" method="POST">
+                <input type="hidden" name="report_type" value="{{ report_type }}">
+                <input type="hidden" name="report_name" value="{{ report }}">
+                <button type="submit">Download Report as Excel</button>
+            </form>
+        </div>
+
+        <div class="report-display">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flashes">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% if report == "All Species" %}
+                {% if result %}
+                    <div class="header-result">
+                        <h2>{% if is_flora %}All Flora Report {% else %}All Fauna Report {% endif %}</h2>
+                        <h3>Total: {{ result|length }} rows</h3>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    {% if is_flora %}
+                                        <th>Species Name</th>
+                                        <th>Occurrence Count</th>
+                                        <th>Total Count</th>
+                                        <th>Exotic</th>
+                                        <th>Planted Native</th>
+                                    {% else %}
+                                        {# Fauna All Species Headers #}
+                                        <th>Genus</th>
+                                        <th>Species</th>
+                                        <th>Vernacular Name</th>
+                                        <th>Family</th>
+                                        <th>Class Name</th> {# Re-enabled #}
+                                        <th>Exotic</th>
+                                        <th>Rare/Endangered</th>
+                                        <th>Local Rare/Endangered</th>
+                                        <th>Year</th>
+                                        <th>Decimal Longitude</th>
+                                        <th>Decimal Latitude</th>
+                                        <th>Reserve Name</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in result %}
+                                    <tr>
+                                        {% if is_flora %}
+                                            <td>{{ row.species_name }}</td>
+                                            <td>{{ row.occurrence_count }}</td>
+                                            <td>{{ row.total_individual_count }}</td>
+                                            <td>{{ "Yes" if row.exotic else "No" }}</td>
+                                            <td>{{ row.planted_native if row.planted_native else 'N/A' }}</td>
+                                        {% else %}
+                                            {# Fauna All Species Data #}
+                                            <td>{{ row.Genus }}</td>
+                                            <td>{{ row.Species }}</td>
+                                            <td>{{ row['Vernacular Name'] }}</td>
+                                            <td>{{ row.Family }}</td>
+                                            <td>{{ row['Class Name'] }}</td> {# Re-enabled #}
+                                            <td>{{ 'Yes' if row.Exotic else 'No' }}</td>
+                                            <td>{{ 'Yes' if row['Rare/Endangered'] else 'No' }}</td>
+                                            <td>{{ 'Yes' if row['Local Rare/Endangered'] else 'No' }}</td>
+                                            <td>{{ row.Year if row.Year is not none else 'N/A' }}</td>
+                                            <td>{{ row['Decimal Longitude'] if row['Decimal Longitude'] is not none else 'N/A' }}</td>
+                                            <td>{{ row['Decimal Latitude'] if row['Decimal Latitude'] is not none else 'N/A' }}</td>
+                                            <td>{{ row['Reserve Name'] if row['Reserve Name'] is not none else 'N/A' }}</td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% elif not get_flashed_messages() %} {# Only show this if no flash messages are present #}
+                        <div class="header-result">
+                            <h2>No data available for {% if is_flora %}All Flora Report{% else %}All Fauna Report{% endif %}.</h2>
+                        </div>
+                {% endif %}
+            {% elif report == "Summary Report" %}
+                {% if result %}
+                    <div class="header-result">
+                        <h2>{% if is_flora %}Flora Summary Report{% else %}Fauna Summary Report{% endif %}</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    {% if is_flora %}
+                                        <th>Source File</th>
+                                        <th>Location Name</th>
+                                        <th>Total Species</th>
+                                        <th>Number of Exotic Species</th>
+                                        <th>Number of Listed R&E</th>
+                                        <th>Number of Planted Native</th>
+                                    {% else %}
+                                        {# Fauna Summary Headers #}
+                                        <th>Class Name</th> {# Re-enabled #}
+                                        <th>Reserve Name</th>
+                                        <th>Total Species</th>
+                                        <th>Number of Exotic Species</th>
+                                        <th>Number of Rare/Endangered Species</th>
+                                        <th>Number of Local Rare/Endangered Species</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in result %}
+                                    <tr>
+                                        {% if is_flora %}
+                                            <td>{{ row['Source File'] }}</td>
+                                            <td>{{ row['Location Name'] }}</td>
+                                            <td>{{ row['Total Species'] }}</td>
+                                            <td>{{ row['Number of Exotic Species'] }}</td>
+                                            <td>{{ row['Number of Listed R&E'] }}</td>
+                                            <td>{{ row['Number of Planted Native'] }}</td>
+                                        {% else %}
+                                            {# Fauna Summary Data #}
+                                            <td>{{ row['Class Name'] }}</td> {# Re-enabled #}
+                                            <td>{{ row['Reserve Name'] }}</td>
+                                            <td>{{ row['Total Species'] }}</td>
+                                            <td>{{ row['Number of Exotic Species'] }}</td>
+                                            <td>{{ row['Number of Rare/Endangered Species'] }}</td>
+                                            <td>{{ row['Number of Local Rare/Endangered Species'] }}</td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% elif not get_flashed_messages() %}
+                        <div class="header-result">
+                            <h2>No data available for {% if is_flora %}Flora Summary Report{% else %}Fauna Summary Report{% endif %}.</h2>
+                        </div>
+                {% endif %}
+            {% elif report == "Report by Reserve" %}
+                {% if is_flora %}
+                    {% if result %}
+                        <div class="header-result">
+                            <h2>Flora Occurrences by Reserve Report</h2>
+                            <h3>Total: {{ result|length }} rows</h3>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Reserve Name</th>
+                                        <th>Number of Occurrences</th>
+                                        <th>Number of Distinct Species</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in result %}
+                                        <tr>
+                                            <td>{{ row['Reserve Name'] }}</td>
+                                            <td>{{ row['Number of Occurrences'] }}</td>
+                                            <td>{{ row['Number of Distinct Species'] }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% elif not get_flashed_messages() %}
+                        <div class="header-result"><h2>No data available for Report by Reserve.</h2></div>
+                    {% endif %}
+                {% else %}
+                    <div class="header-result"><h2>Report by Reserve is only available for Flora.</h2></div>
+                {% endif %}
+            {% else %}
+                <p>No data available. Please select a report.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function adjustTableHeight() {
+            var topbarHeight = document.querySelector('.top-bar').offsetHeight;
+
+            var headerResult = document.querySelector('.header-result');
+            var headingHeight = headerResult ? headerResult.offsetHeight : 0;
+
+            var availableHeight = window.innerHeight - topbarHeight - headingHeight;
+            var tableWrapper = document.querySelector('.table-wrapper');
+            if (tableWrapper) { 
+                tableWrapper.style.height = availableHeight + 'px';
+            }
+        }
+
+        window.onload = function() {
+            adjustTableHeight();
+
+            document.getElementById('report_type').addEventListener('change', function() {
+                var reportType = this.value;
+                var reportNameSelect = document.getElementById('report_name');
+                reportNameSelect.innerHTML = ''; 
+
+                var allSpeciesOption = document.createElement('option');
+                allSpeciesOption.value = 'All Species';
+                allSpeciesOption.textContent = 'All Species';
+                reportNameSelect.appendChild(allSpeciesOption);
+
+                var summaryReportOption = document.createElement('option');
+                summaryReportOption.value = 'Summary Report';
+                summaryReportOption.textContent = 'Summary Report';
+                reportNameSelect.appendChild(summaryReportOption);
+
+                if (reportType === 'Flora') {
+                    var reportByReserveOption = document.createElement('option');
+                    reportByReserveOption.value = 'Report by Reserve';
+                    reportByReserveOption.textContent = 'Report by Reserve (Flora)';
+                    reportNameSelect.appendChild(reportByReserveOption);
+                }
+
+            });
+
+            document.getElementById('report_type').dispatchEvent(new Event('change'));
+
+            var initialReportName = "{{ report }}";
+            var reportNameSelect = document.getElementById('report_name');
+            for (var i = 0; i < reportNameSelect.options.length; i++) {
+                if (reportNameSelect.options[i].value === initialReportName) {
+                    reportNameSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        window.onresize = adjustTableHeight;
+
+        function toggleHamburgerMenu() {
+            var dropdown = document.getElementById("hamburger-dropdown");
+            if (dropdown.style.display === "none") {
+                dropdown.style.display = "block";
+            } else {
+                dropdown.style.display = "none";
+            }
+        }
+    </script>
+
+</body>
+</html>

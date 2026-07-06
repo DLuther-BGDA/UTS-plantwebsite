@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare Traits</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6; 
+            color: #333;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #e2e8f0;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        .data-table th {
+            background-color: #edf2f7;
+            font-weight: 600;
+            color: #4a5568;
+            text-transform: uppercase;
+        }
+        .data-table tr:nth-child(even) {
+            background-color: #f7fafc;
+        }
+        .data-table tr:hover {
+            background-color: #ebf8ff;
+            cursor: pointer;
+        }
+        .info-message {
+            background-color: #e0f2f7;
+            color: #2c5282;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .checkbox-item:hover {
+            background-color: #f3f4f6;
+        }
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 10px;
+            accent-color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div style="margin-bottom: 20px;">
+        <a href="/home" style="display: inline-flex; align-items: center; padding: 10px 15px; background-color: #e0e0e0; color: black; border: 1px solid #ccc; border-radius: 5px; text-decoration: none; transition: background-color 0.3s ease;">
+            <img src="{{ url_for('static', filename='home.png') }}" alt="Home" style="height: 24px; margin-right: 8px;"> Home
+        </a>
+    </div>
+
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">📊 Compare Traits Across Multiple Species</h2>
+
+        <form method="POST" class="bg-white p-6 rounded-lg shadow-md mb-8 flex flex-col">
+            <div class="flex items-start justify-between">
+                <div class="relative flex-grow pr-4">
+                    <label for="species-search" class="block text-gray-700 text-sm font-semibold mb-2">Select species to compare:</label>
+                    <input type="text" id="species-search"
+                           class="shadow appearance-none border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Type to search and select species...">
+
+                    <div id="species-dropdown"
+                         class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                    </div>
+                    <div id="selected-species-hidden-inputs"></div>
+                </div>
+
+                <div class="flex flex-col space-y-3 pt-7">
+                    <button type="button" id="clear-selection-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-300 whitespace-nowrap">
+                        Clear Selection
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-300 whitespace-nowrap">
+                        Compare
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Conditional rendering for the comparison data table -->
+        {% if compare_data %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Trait</th>
+                        {% for species_name in compare_data.keys() %}
+                            <th>{{ species_name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if compare_data %}
+                        {% set first_species_data = compare_data[compare_data.keys()|first] %}
+                        {% for trait in first_species_data.keys() %}
+                            <tr>
+                                <td>{{ trait.replace('_', ' ').title() }}</td>
+                                {% for species_name, traits in compare_data.items() %}
+                                    <td>{{ traits.get(trait, 'N/A') }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        {% else %}
+            <!-- Message displayed if no species are selected or no data is available -->
+            <div class="info-message">Please select at least one species.</div>
+        {% endif %}
+    </div>
+
+    <script>
+        const allSpecies = {{ species_list | tojson }};
+        const preSelectedSpecies = {{ selected_species | tojson }};
+
+        // Get references to DOM elements
+        const speciesSearchInput = document.getElementById('species-search');
+        const speciesDropdown = document.getElementById('species-dropdown');
+        const hiddenInputsContainer = document.getElementById('selected-species-hidden-inputs');
+        const clearSelectionBtn = document.getElementById('clear-selection-btn'); 
+
+        // A Set to keep track of currently selected species names
+        let selectedSpeciesNames = new Set();
+
+        // Variable to temporarily store the selected species display
+        let lastSelectedDisplay = '';
+
+        /*
+         * Populates the dropdown with species options as checkboxes.
+         */
+        function populateDropdown() {
+            speciesDropdown.innerHTML = '';
+            allSpecies.forEach(species => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'checkbox-item'; 
+                itemDiv.setAttribute('data-species', species); 
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                // Create a unique ID for each checkbox
+                checkbox.id = `species-${species.replace(/\s/g, '-').replace(/[^\w-]/g, '')}`; 
+                checkbox.value = species;
+                checkbox.name = 'species_checkbox_temp'; 
+                checkbox.className = 'form-checkbox h-5 w-5 text-blue-600 rounded'; 
+
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id; 
+                label.textContent = species;
+                label.className = 'ml-2 text-gray-700 flex-grow'; 
+
+                itemDiv.appendChild(checkbox);
+                itemDiv.appendChild(label);
+                speciesDropdown.appendChild(itemDiv);
+
+                
+                itemDiv.addEventListener('click', (event) => {
+                   
+                    if (event.target !== checkbox) {
+                         checkbox.click();
+                    }
+                });
+
+                
+                checkbox.addEventListener('change', handleCheckboxChange);
+            });
+        }
+
+        /*
+         * Updates the display in the search input field with the currently selected species.
+         */
+        function updateSearchInputDisplay() {
+            if (selectedSpeciesNames.size > 0) {
+                speciesSearchInput.value = Array.from(selectedSpeciesNames).join(', ');
+            } else {
+                // If no species are selected, revert to the original placeholder
+                speciesSearchInput.value = '';
+                speciesSearchInput.placeholder = "Type to search and select species...";
+            }
+        }
+
+        /*
+         * Handles the checking and unchecking of species checkboxes.
+        */
+        function handleCheckboxChange(event) {
+            const speciesName = event.target.value;
+            const isChecked = event.target.checked;
+
+            if (isChecked) {
+                selectedSpeciesNames.add(speciesName); 
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'selected_species'; 
+                hiddenInput.value = speciesName;
+                hiddenInput.setAttribute('data-species-hidden', speciesName); 
+                hiddenInputsContainer.appendChild(hiddenInput);
+            } else {
+                selectedSpeciesNames.delete(speciesName); 
+                const hiddenInputToRemove = hiddenInputsContainer.querySelector(`input[data-species-hidden="${speciesName}"]`);
+                if (hiddenInputToRemove) {
+                    hiddenInputsContainer.removeChild(hiddenInputToRemove);
+                }
+            }
+            updateSearchInputDisplay(); 
+        }
+
+        /*
+         * Filters the dropdown options based on the search input's value.
+         */
+        function filterDropdown() {
+            const searchTerm = speciesSearchInput.value.toLowerCase();
+            speciesDropdown.querySelectorAll('.checkbox-item').forEach(item => {
+                const speciesName = item.getAttribute('data-species').toLowerCase();
+                if (speciesName.includes(searchTerm)) {
+                    item.classList.remove('hidden'); // Show item if it matches
+                } else {
+                    item.classList.add('hidden'); // Hide item if it doesn't match
+                }
+            });
+        }
+
+        /*
+         * Initializes the selection state based on species already selected from the backend.
+         */
+        function initializeSelection() {
+            preSelectedSpecies.forEach(selectedSpeciesName => {
+                const checkbox = speciesDropdown.querySelector(`input[value="${selectedSpeciesName}"]`);
+                if (checkbox) {
+                    checkbox.checked = true; 
+                    selectedSpeciesNames.add(selectedSpeciesName); 
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'selected_species';
+                    hiddenInput.value = selectedSpeciesName;
+                    hiddenInput.setAttribute('data-species-hidden', selectedSpeciesName);
+                    hiddenInputsContainer.appendChild(hiddenInput);
+                }
+            });
+            updateSearchInputDisplay(); 
+        }
+
+        /*
+         * Clears all selected species and updates the display.
+         */
+        function clearSelection() {
+            speciesDropdown.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            selectedSpeciesNames.clear();
+            hiddenInputsContainer.innerHTML = '';
+            updateSearchInputDisplay();
+        }
+
+        // --- Event Listeners ---
+
+        // Show the dropdown when the search input gains focus
+        speciesSearchInput.addEventListener('focus', () => {
+            lastSelectedDisplay = speciesSearchInput.value; 
+            speciesSearchInput.value = ''; 
+            speciesDropdown.classList.remove('hidden'); 
+            filterDropdown(); 
+        });
+
+        // Filter the dropdown options
+        speciesSearchInput.addEventListener('input', filterDropdown);
+
+        // Hide the dropdown when clicking
+        speciesSearchInput.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (!speciesDropdown.contains(document.activeElement) && document.activeElement !== speciesSearchInput) {
+                    speciesDropdown.classList.add('hidden'); 
+                    if (speciesSearchInput.value === '' || speciesSearchInput.value === lastSelectedDisplay) {
+                        updateSearchInputDisplay();
+                    }
+                }
+            }, 100);
+        });
+
+        // Add event listener
+        clearSelectionBtn.addEventListener('click', clearSelection);
+
+
+        // Initialize the dropdown and set initial selections
+        document.addEventListener('DOMContentLoaded', () => {
+            populateDropdown();    
+            initializeSelection();   
+        });
+    </script>
+</body>
+</html>

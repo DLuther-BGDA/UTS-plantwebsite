@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit User</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .edit-user-container {
+            background-color: white;
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        .edit-user-container input[type="text"],
+        .edit-user-container select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .edit-user-container button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 70%;
+            margin-bottom: 10px;
+        }
+
+        .edit-user-container button:hover {
+            background-color: #218838;
+        }
+
+        .back-button {
+            background-color: #ccc;
+            color: black;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 1px solid #666;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            width: 40%;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="edit-user-container">
+        <h1>Edit User</h1>
+        <form method="POST" action="/edit_user/{{ user.id }}">
+            <label for="email">Email:</label>
+            <input type="text" id="email" name="email" value="{{ user.email }}" readonly />
+
+            <label for="role">Role:</label>
+            <select id="role" name="role">
+                <option value="User" {% if user.role == 'User' %}selected{% endif %}>User</option>
+                <option value="Administrator" {% if user.role == 'Administrator' %}selected{% endif %}>Administrator</option>
+            </select>
+
+            <button type="submit">Save Changes</button>
+        </form>
+
+        <a href="/manage_users" class="back-button">Back to Manage Users</a>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fauna Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            white-space: nowrap; 
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        th {
+            padding: 10px;
+            white-space: nowrap; 
+            overflow: hidden;         
+            text-overflow: ellipsis; 
+            max-width: 150px;        
+        }
+
+        td {
+            overflow: hidden;         
+            text-overflow: ellipsis; 
+            max-width: 200px;        
+        }
+
+        tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .table-wrapper {
+            overflow-x: auto; 
+            margin-bottom: 20px;
+        }
+
+        .top-bar {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+        .menu-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #e0e0e0;
+            color: black;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+        }
+
+        .menu-item:hover {
+            background-color: #ccc;
+        }
+        .user-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .username {
+            margin-right: 15px;
+        }
+
+        .hamburger-menu {
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+
+        .dropdown-content {
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 120px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            right: 20px;
+            top: 50px; 
+        }
+        .menu-item-container {
+            display: flex;
+            flex-wrap: wrap; 
+            gap: 10px;       
+}
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #ddd;
+        }
+
+        .container {
+            display: flex;
+            margin: 20px;
+        }
+
+        .sidebar {
+            width: 250px;
+            padding: 20px;
+            background-color: #f8f8f8;
+            border-right: 1px solid #eee;
+        }
+
+        .sidebar h3 {
+            margin-top: 0;
+        }
+
+        .sidebar label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .sidebar input[type=text],
+        .sidebar select {
+            width: calc(100% - 12px);
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        .sidebar .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar .input-wrapper button {
+            position: absolute;
+            right: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            color: #888;
+        }
+
+        .sidebar .suggestions {
+            position: absolute;
+            left: 0;
+            width: calc(100% - 2px);
+            border: 1px solid #ccc;
+            background-color: white;
+            z-index: 2;
+            display: none;
+        }
+
+        .sidebar .suggestion-item {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .sidebar .suggestion-item:hover {
+            background-color: #eee;
+        }
+
+        .sidebar .selected-reserves {
+            margin-top: 10px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
+
+        .sidebar .reserve-item {
+            display: inline-block;
+            margin-right: 5px;
+            padding: 5px 8px;
+            background-color: #e0f7fa;
+            border: 1px solid #b2ebf2;
+            border-radius: 3px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar .reserve-item button {
+            background: none;
+            border: none;
+            color: #f44336;
+            cursor: pointer;
+            font-size: 1em;
+            margin-left: 5px;
+        }
+
+        .sidebar button#download-excel-button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
+
+        .sidebar button#download-excel-button:hover {
+            background-color: #45a049;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        .header-result {
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #eee;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+
+        function adjustTableHeight() {
+            var topbarHeight = document.querySelector('.top-bar').offsetHeight;
+            var headerResult = document.querySelector('.header-result');
+            var headingHeight = headerResult ? headerResult.offsetHeight : 0; 
+
+            var availableHeight = window.innerHeight - topbarHeight - headingHeight - 40; 
+            var tableWrapper = document.querySelector('.table-wrapper');
+            if (tableWrapper) { 
+                tableWrapper.style.height = availableHeight + 'px';
+            }
+        }
+
+        window.onload = function() {
+            adjustTableHeight();
+        };
+
+        window.onresize = adjustTableHeight;
+
+        const genusOptions = {{ genusOptions|default('[]')|tojson|safe }};
+        const speciesOptions = {{ speciesOptions|default('[]')|tojson|safe }}; 
+        const familyOptions = {{ familyOptions|default('[]')|tojson|safe }};
+        const vernacularNameOptions = {{ vernacularNameOptions|default('[]')|tojson|safe }}; 
+        const classNameOptions = {{ classNameOptions|default('[]')|tojson|safe }}; 
+        const rareEndangeredOptions = {{ rareEndangeredOptions|default('[]')|tojson|safe }}; 
+        const localRareEndangeredOptions = {{ localRareEndangeredOptions|default('[]')|tojson|safe }}; 
+        const exoticOptions = {{ exoticOptions|default('[]')|tojson|safe }};
+        const yearOptions = {{ yearOptions|default('[]')|tojson|safe }};
+        const reserveNameOptions = {{ reserveNameOptions|default('[]')|tojson|safe }}; 
+        const filtered_result = {{ filtered_result|default('[]')|tojson|safe }};
+
+        const full_filtered_fauna_result = {{ full_filtered_fauna_result|default('[]')|tojson|safe }};
+
+        function filterOptions(type, options) {
+            const input = document.getElementById(type).value.toLowerCase();
+            const suggestionsContainer = document.getElementById(type + '-suggestions');
+            suggestionsContainer.innerHTML = '';
+
+            if (input === '') {
+
+                options.forEach(option => {
+                    addSuggestion(suggestionsContainer, type, option);
+                });
+            } else {
+
+                const filteredOptions = options.filter(option => String(option).toLowerCase().includes(input)); 
+                filteredOptions.forEach(option => {
+                    addSuggestion(suggestionsContainer, type, option);
+                });
+            }
+            if (suggestionsContainer.children.length > 0) {
+                suggestionsContainer.style.display = 'block';
+            } else {
+                suggestionsContainer.style.display = 'none';
+            }
+        }
+
+        function addSuggestion(container, type, option) {
+            const suggestionItem = document.createElement('div');
+            suggestionItem.classList.add('suggestion-item');
+            suggestionItem.textContent = option;
+            suggestionItem.onclick = function () {
+                document.getElementById(type).value = option;
+                container.innerHTML = '';  
+                hideSuggestions(type); 
+                submitForm(); 
+            };
+            container.appendChild(suggestionItem);
+        }
+
+        function selectOption(type, option) {
+            document.getElementById(type).value = option;
+            hideSuggestions(type); 
+
+            submitForm();
+        }
+
+        function autocompleteOnEnter(event, type, options) {
+            const input = document.getElementById(type).value.toLowerCase();
+            const suggestionsContainer = document.getElementById(type + '-suggestions');
+
+            if (event.key === "Enter") {
+                event.preventDefault(); 
+
+                const filteredOptions = options.filter(option => String(option).toLowerCase().includes(input));
+                if (filteredOptions.length > 0) {
+                    selectOption(type, filteredOptions[0]);
+                } else {
+
+                    submitForm();
+                }
+            }
+        }
+
+        function showSuggestions(type) {
+            const suggestionsDiv = document.getElementById(type + '-suggestions');
+            suggestionsDiv.innerHTML = '';
+
+            const optionsMap = {
+                genus: genusOptions,
+                species: speciesOptions,
+                family: familyOptions,
+                vernacular_name: vernacularNameOptions, 
+                class_name: classNameOptions, 
+                rare_endangered: rareEndangeredOptions, 
+                local_rare_endangered: localRareEndangeredOptions, 
+                exotic: exoticOptions,
+                year: yearOptions, 
+                reserve_name: reserveNameOptions 
+            };
+
+            const options = optionsMap[type] || [];
+            options.forEach(option => addSuggestion(suggestionsDiv, type, option));
+
+            const input = document.getElementById(type);
+            const rect = input.getBoundingClientRect();
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+
+            suggestionsDiv.style.position = 'absolute';
+            suggestionsDiv.style.top = (rect.bottom + scrollTop + 2) + 'px';  
+            suggestionsDiv.style.left = (rect.left + scrollLeft) + 'px';      
+            suggestionsDiv.style.minWidth = rect.width + 'px';                
+            suggestionsDiv.style.maxWidth = '400px';                          
+            if (options.length > 0) { 
+                suggestionsDiv.style.display = 'block';
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        }
+
+        function hideSuggestions(type) {
+            const suggestionsDiv = document.getElementById(type + '-suggestions');
+            suggestionsDiv.innerHTML = '';
+            suggestionsDiv.style.display = 'none';
+        }
+
+        function clearSearch(type) {
+            document.getElementById(type).value = '';
+            hideSuggestions(type); 
+            submitForm(); 
+        }
+
+        function submitForm() {
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const page = urlParams.get('page') || '1';
+            const perPage = urlParams.get('per_page') || '20'; 
+
+            const form = document.querySelector('form');
+
+            let action = form.action.split('?')[0];
+            form.action = `${action}?page=${page}&per_page=${perPage}`;
+
+            form.submit();
+        }
+
+        document.addEventListener('click', function (event) {
+            const types = ['genus', 'species', 'family', 'vernacular_name', 'class_name', 'rare_endangered', 'local_rare_endangered', 'exotic', 'year', 'reserve_name']; 
+            types.forEach(type => {
+                const input = document.getElementById(type);
+                const suggestionsDiv = document.getElementById(type + '-suggestions');
+                if (input && suggestionsDiv && !input.contains(event.target) && !suggestionsDiv.contains(event.target)) {
+                    hideSuggestions(type); 
+                }
+            });
+        });
+
+        function generateFileName(baseName, filters) {
+            const currentDate = new Date().toISOString().slice(0, 10); 
+
+            const nonEmptyFilters = Object.entries(filters)
+                .filter(([key, value]) => value) 
+                .map(([key, value]) => value.replace(/ /g, '_')); 
+
+            const fileName = `${currentDate}_${baseName}${nonEmptyFilters.length > 0 ? '_' + nonEmptyFilters.join('_') : ''}.xlsx`;
+            return fileName;
+        }
+
+        function downloadExcel() {
+            const data = full_filtered_fauna_result; 
+            console.log("Data for download:", data);
+
+            if (!data || data.length === 0) {
+                alert('No data to download!');
+                return;
+            }
+
+            const faunaColumnMapping = {
+                'Genus': 'genus',
+                'Species': 'species',
+                'Family': 'family',
+                'Vernacular Name': 'vernacular_name', 
+                'Class Name': 'class_name', 
+                'Rare/Endangered': 'rare_endangered', 
+                'Local Rare/Endangered': 'local_rare_endangered', 
+                'Exotic': 'exotic',
+                'Year': 'year',
+                'Decimal Longitude': 'decimal_longitude', 
+                'Decimal Latitude': 'decimal_latitude', 
+                'Reserve Name': 'reserve_name' 
+            };
+
+            const columnMapping = faunaColumnMapping;
+
+            const reorderedData = data.map(row => {
+                let reorderedRow = {};
+                for (const displayHeader in columnMapping) {
+                    const backendKey = columnMapping[displayHeader];
+
+                    if (backendKey === 'rare_endangered' || backendKey === 'local_rare_endangered' || backendKey === 'exotic') {
+                        reorderedRow[displayHeader] = row[backendKey] ? 'Yes' : 'No';
+                    } else {
+                        reorderedRow[displayHeader] = row[backendKey] !== undefined ? row[backendKey] : '';
+                    }
+                }
+                return reorderedRow;
+            });
+
+            const filters = {
+                genus: document.getElementById('genus') ? document.getElementById('genus').value : '',
+                species: document.getElementById('species') ? document.getElementById('species').value : '',
+                family: document.getElementById('family') ? document.getElementById('family').value : '',
+                vernacular_name: document.getElementById('vernacular_name') ? document.getElementById('vernacular_name').value : '', 
+                class_name: document.getElementById('class_name') ? document.getElementById('class_name').value : '', 
+                rare_endangered: document.getElementById('rare_endangered') ? document.getElementById('rare_endangered').value : '', 
+                local_rare_endangered: document.getElementById('local_rare_endangered') ? document.getElementById('local_rare_endangered').value : '', 
+                exotic: document.getElementById('exotic') ? document.getElementById('exotic').value : '',
+                year: document.getElementById('year') ? document.getElementById('year').value : '',
+                reserve_name: document.getElementById('reserve_name') ? document.getElementById('reserve_name').value : '' 
+            };
+
+            const fileName = generateFileName('fauna_data', filters);
+
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(reorderedData);
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Filtered Fauna Data');
+
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+            const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = fileName; 
+            downloadLink.style.display = 'none'; 
+            document.body.appendChild(downloadLink);
+            downloadLink.click(); 
+            document.body.removeChild(downloadLink); 
+            URL.revokeObjectURL(url); 
+        }
+
+        function toggleHamburgerMenu() {
+            var dropdown = document.getElementById('hamburger-dropdown');
+            if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        window.onclick = function (event) {
+            if (!event.target.matches('.hamburger-menu')) {
+                var dropdown = document.getElementById('hamburger-dropdown');
+                if (dropdown.style.display === 'block') {
+                    dropdown.style.display = 'none';
+                }
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div class="top-bar">
+        <div class="menu-item-container">
+            <!-- Home button added here with the icon -->
+            <div class="menu-item" onclick="window.location.href='/home';">
+                <img src="{{ url_for('static', filename='home.png') }}" alt="Home" style="height: 24px;"> Home
+            </div>
+            <div class="menu-item" onclick="window.location.href='/flora_dashboard';">Filter Flora</div>
+            <div class="menu-item" onclick="window.location.href='/fauna_dashboard';">Filter Fauna</div>
+            <div class="menu-item" onclick="window.location.href='/report';">Report</div>
+            <div class="menu-item" onclick="window.location.href='/map';">View Map</div>
+            <div class="menu-item" onclick="window.location.href='/statistics';">Statistics</div>
+            {% if is_admin %}
+            <div class="menu-item" onclick="window.location.href='/update_data';">Update Data</div>
+            {% endif %}
+        </div>
+
+        <div class="user-container">
+            <div class="username">
+                {{ username }}
+            </div>
+
+            <div class="hamburger-menu" onclick="toggleHamburgerMenu()">
+                &#9776; </div>
+
+            <div id="hamburger-dropdown" class="dropdown-content" style="display: none;">
+                {% if is_admin %}
+                <a href="/settings">Settings</a>
+                {% endif %}
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <h3>Filter By</h3>
+            <form id="filter_fauna" action="/filter_fauna" method="post">
+                <label for="genus">Genus</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="genus" name="genus" value="{{ genus }}" onfocus="showSuggestions('genus')" oninput="filterOptions('genus', genusOptions)" onkeydown="autocompleteOnEnter(event, 'genus', genusOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('genus')">&times;</button>
+                </div>
+                <div id="genus-suggestions" class="suggestions"></div><br>
+
+                <label for="species">Species</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="species" name="species" value="{{ species }}" onfocus="showSuggestions('species')" oninput="filterOptions('species', speciesOptions)" onkeydown="autocompleteOnEnter(event, 'species', speciesOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('species')">&times;</button>
+                </div>
+                <div id="species-suggestions" class="suggestions"></div><br>
+
+                <label for="family">Family</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="family" name="family" value="{{ family }}" onfocus="showSuggestions('family')" oninput="filterOptions('family', familyOptions)" onkeydown="autocompleteOnEnter(event, 'family', familyOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('family')">&times;</button>
+                </div>
+                <div id="family-suggestions" class="suggestions"></div><br>
+
+                <label for="vernacular_name">Vernacular Name</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="vernacular_name" name="vernacular_name" value="{{ vernacular_name }}" onfocus="showSuggestions('vernacular_name')" oninput="filterOptions('vernacular_name', vernacularNameOptions)" onkeydown="autocompleteOnEnter(event, 'vernacular_name', vernacularNameOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('vernacular_name')">&times;</button>
+                </div>
+                <div id="vernacular_name-suggestions" class="suggestions"></div><br>
+
+                <label for="class_name">Class Name</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="class_name" name="class_name" value="{{ class_name }}" onfocus="showSuggestions('class_name')" oninput="filterOptions('class_name', classNameOptions)" onkeydown="autocompleteOnEnter(event, 'class_name', classNameOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('class_name')">&times;</button>
+                </div>
+                <div id="class_name-suggestions" class="suggestions"></div><br>
+
+                <label for="rare_endangered">Rare/Endangered</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="rare_endangered" name="rare_endangered" value="{{ rare_endangered }}" onfocus="showSuggestions('rare_endangered')" oninput="filterOptions('rare_endangered', rareEndangeredOptions)" onkeydown="autocompleteOnEnter(event, 'rare_endangered', rareEndangeredOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('rare_endangered')">&times;</button>
+                </div>
+                <div id="rare_endangered-suggestions" class="suggestions"></div><br>
+
+                <label for="local_rare_endangered">Local Rare/Endangered</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="local_rare_endangered" name="local_rare_endangered" value="{{ local_rare_endangered }}" onfocus="showSuggestions('local_rare_endangered')" oninput="filterOptions('local_rare_endangered', localRareEndangeredOptions)" onkeydown="autocompleteOnEnter(event, 'local_rare_endangered', localRareEndangeredOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('local_rare_endangered')">&times;</button>
+                </div>
+                <div id="local_rare_endangered-suggestions" class="suggestions"></div><br>
+
+                <label for="exotic">Exotic</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="exotic" name="exotic" value="{{ exotic }}" onfocus="showSuggestions('exotic')" oninput="filterOptions('exotic', exoticOptions)" onkeydown="autocompleteOnEnter(event, 'exotic', exoticOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('exotic')">&times;</button>
+                </div>
+                <div id="exotic-suggestions" class="suggestions"></div><br>
+
+                <label for="year">Year</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="year" name="year" value="{{ year }}" onfocus="showSuggestions('year')" oninput="filterOptions('year', yearOptions)" onkeydown="autocompleteOnEnter(event, 'year', yearOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('year')">&times;</button>
+                </div>
+                <div id="year-suggestions" class="suggestions"></div><br>
+
+                <label for="reserve_name">Reserve Name</label><br>
+                <div class="input-wrapper">
+                    <input type="text" id="reserve_name" name="reserve_name" value="{{ reserve_name }}" onfocus="showSuggestions('reserve_name')" oninput="filterOptions('reserve_name', reserveNameOptions)" onkeydown="autocompleteOnEnter(event, 'reserve_name', reserveNameOptions)" autocomplete="off">
+                    <button type="button" onclick="clearSearch('reserve_name')">&times;</button>
+                </div>
+                <div id="reserve_name-suggestions" class="suggestions"></div><br>
+
+            </form>
+            <button id="download-excel-button" onclick="downloadExcel()">Download Data</button>
+        </div>
+
+        <div class="main-content">
+            <div class="header-result">
+                <h2>Fauna Results</h2>
+                <h3>Total: {{ total_results }} rows</h3>
+                <div style="margin-top: 10px;">
+                    <strong>Show:</strong>
+                    <a href="?page=1&per_page=10" {% if per_page == 10 %}style="font-weight:bold;"{% endif %}>10</a> |
+                    <a href="?page=1&per_page=25" {% if per_page == 25 %}style="font-weight:bold;"{% endif %}>25</a> |
+                    <a href="?page=1&per_page=50" {% if per_page == 50 %}style="font-weight:bold;"{% endif %}>50</a> |
+                    <a href="?page=1&per_page=100" {% if per_page == 100 %}style="font-weight:bold;"{% endif %}>100</a>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    {% if page_num > 1 %}
+                    <a href="?page={{ page_num - 1 }}&per_page={{ per_page }}">Previous</a>
+                    {% endif %}
+                    <span>Page {{ page_num }}</span>
+                    {% if (page_num * per_page) < total_results %}
+                    <a href="?page={{ page_num + 1 }}&per_page={{ per_page }}">Next</a>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Genus</th>
+                            <th>Species</th>
+                            <th>Family</th>
+                            <th>Vernacular Name</th>
+                            <th>Class Name</th>
+                            <th>Rare/Endangered</th>
+                            <th>Local Rare/Endangered</th>
+                            <th>Exotic</th>
+                            <th>Year</th>
+                            <th>Decimal Longitude</th>
+                            <th>Decimal Latitude</th>
+                            <th>Reserve Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in filtered_result %}
+                        <tr>
+                            <td>{{ row.genus }}</td>
+                            <td>{{ row.species }}</td>
+                            <td>{{ row.family }}</td>
+                            <td>{{ row.vernacular_name }}</td>
+                            <td>{{ row.class_name }}</td>
+                            <td>{{ 'Yes' if row.rare_endangered else 'No' }}</td>
+                            <td>{{ 'Yes' if row.local_rare_endangered else 'No' }}</td>
+                            <td>{{ 'Yes' if row.exotic else 'No' }}</td>
+                            <td>{{ row.year }}</td>
+                            <td>{{ row.decimal_longitude }}</td>
+                            <td>{{ row.decimal_latitude }}</td>
+                            <td>{{ row.reserve_name }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

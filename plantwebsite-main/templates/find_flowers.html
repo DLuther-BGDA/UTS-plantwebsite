@@ -1,0 +1,88 @@
+{% extends "base_group3.html" %} {# Make sure this points to your new base for these pages #}
+
+{% block content %}
+    <div style="margin-bottom: 20px;">
+        <a href="/home" style="display: inline-flex; align-items: center; padding: 10px 15px; background-color: #e0e0e0; color: black; border: 1px solid #ccc; border-radius: 5px; text-decoration: none; transition: background-color 0.3s ease;">
+            <img src="{{ url_for('static', filename='home.png') }}" alt="Home" style="height: 24px; margin-right: 8px;"> Home
+        </a>
+    </div>
+
+    <h2>🔍 Find Flowers by Trait</h2>
+
+    <form method="POST">
+        <label for="selected_groups">Select trait groups:</label>
+        <select name="selected_groups" id="selected_groups" multiple size="5" onchange="this.form.submit()">
+            {% for group in all_trait_groups %}
+                <option value="{{ group }}" {% if group in selected_groups %}selected{% endif %}>{{ group }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <input type="submit" value="Update Traits">
+    </form>
+
+    <form method="POST">
+        {% for group in selected_groups %}
+            <input type="hidden" name="selected_groups" value="{{ group }}">
+        {% endfor %}
+
+        <label for="selected_traits">Select traits to filter by:</label>
+        <select name="selected_traits" id="selected_traits" multiple size="5" onchange="this.form.submit()">
+            {% for trait in available_traits_for_display %}
+                <option value="{{ trait }}" {% if trait in selected_traits %}selected{% endif %}>{{ trait.replace('_', ' ').title() }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <input type="submit" value="Update Trait Values">
+    </form>
+
+    <form method="POST">
+        {% for group in selected_groups %}
+            <input type="hidden" name="selected_groups" value="{{ group }}">
+        {% endfor %}
+        {% for trait in selected_traits %}
+            <input type="hidden" name="selected_traits" value="{{ trait }}">
+        {% endfor %}
+
+        {% for trait in selected_traits %}
+            <label for="values_for_{{ trait }}">Values for <strong>{{ trait.replace('_', ' ').title() }}</strong>:</label>
+            <select name="values_for_{{ trait }}" id="values_for_{{ trait }}" multiple size="5">
+                {% for value in trait_value_options.get(trait, []) %}
+                    <option value="{{ value }}" {% if value in filters_display.get(trait, []) %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+            <br>
+        {% endfor %}
+        <input type="submit" value="Find Matching Species">
+    </form>
+
+    <hr>
+    <h3>🌼 Matching Species</h3>
+    {% if matching_species is not none %}
+        {% if matching_species %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Species Name</th>
+                        {% for trait in matching_species[0].keys() if trait != 'species_name' %}
+                            <th>{{ trait.replace('_', ' ').title() }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for species_row in matching_species %}
+                        <tr>
+                            <td>{{ species_row.species_name }}</td>
+                            {% for trait in species_row.keys() if trait != 'species_name' %}
+                                <td>{{ species_row[trait] }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="warning-message">No matching species found.</div>
+        {% endif %}
+    {% else %}
+        <div class="info-message">Please select at least one trait and value to find matching species.</div>
+    {% endif %}
+{% endblock %}

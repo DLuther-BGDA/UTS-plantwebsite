@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register New Account</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .register-container {
+            background-color: white;
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        .register-container input[type="text"],
+        .register-container input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .register-container button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 70%;
+            margin-bottom: 10px;
+        }
+
+        .register-container button:hover {
+            background-color: #218838;
+        }
+
+        .back-button {
+            background-color: #ccc;
+            color: black;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 1px solid #666;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            width: 40%;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="register-container">
+        <h1>Register New Account</h1>
+        <p>Please enter your pre-registered email, the secret password (from the hint you were given), and your desired new password.</p>
+        <form action="/signup" method="post">
+            <input type="text" name="username" placeholder="Your Email Address" required />
+            <!-- Changed type from "password" to "text" here -->
+            <input type="text" name="secret_password" placeholder="Secret Password (Capitals do not matter)" required />
+            <input type="password" name="new_password" placeholder="New Desired Password" required />
+            <input type="password" name="confirm_new_password" placeholder="Confirm New Password" required />
+            
+            {% if error_msg %}
+                <div class="error-message">{{ error_msg }}</div>
+            {% endif %}
+
+            <button type="submit">Set Account Password</button>
+        </form>
+        <a href="/login" class="back-button">Back to Login</a>
+    </div>
+
+</body>
+</html>

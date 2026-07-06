@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Site - Coming Soon</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5; 
+            color: #333;
+            text-align: center;
+        }
+        .content-wrapper {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 90%;
+        }
+        h1 {
+            color: #1a202c;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        p {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .home-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 25px;
+            background-color: #007bff; 
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .home-button:hover {
+            background-color: #0056b3; 
+            transform: translateY(-2px);
+        }
+        .home-button img {
+            height: 28px; 
+            margin-right: 10px;
+            filter: invert(100%); 
+        }
+    </style>
+</head>
+<body>
+    <div class="content-wrapper">
+        <h1>Under Construction</h1>
+        <p>This is currently a test site. New features will be added later.</p>
+        <p>Please return to home to explore existing functionalities.</p>
+        <a href="/home" class="home-button">
+            <img src="{{ url_for('static', filename='home.png') }}" alt="Home Icon"> Return to Home
+        </a>
+    </div>
+</body>
+</html>

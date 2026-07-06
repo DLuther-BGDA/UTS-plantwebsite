@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trait Viewer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+
+        .home-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: #e0e0e0;
+            color: black;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+            margin-bottom: 20px; 
+        }
+
+        .home-button:hover {
+            background-color: #ccc;
+        }
+
+        .home-button img {
+            height: 24px; 
+            margin-right: 8px; 
+        }
+    </style>
+</head>
+<body class="container mt-4">
+
+    <!-- Home button added here -->
+    <a href="/home" class="home-button">
+        <img src="{{ url_for('static', filename='home.png') }}" alt="Home"> Home
+    </a>
+
+    <h1>🌿 Trait & Value Viewer</h1>
+
+    <form method="POST">
+        <label for="trait_select">🔍 Select a Trait</label>
+        <select class="form-select" name="trait_select" id="trait_select" onchange="this.form.submit()">
+            <option value="">-- Choose a Trait --</option>
+            {% for trait in trait_list %}
+                <option value="{{ trait }}" {% if trait == selected_trait %}selected{% endif %}>{{ trait }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if trait_info %}
+        <h2 class="mt-4">📝 Trait Information: {{ selected_trait }}</h2>
+        <ul>
+        {% for key, value in trait_info.items() %}
+            <li><strong>{{ key }}:</strong> {{ value }}</li>
+        {% endfor %}
+        </ul>
+
+        <h3 class="mt-4">📋 Associated Values & Descriptions</h3>
+        {% if value_table %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in value_table %}
+                <tr>
+                    <td>{{ row['Value'] }}</td>
+                    <td>{{ row['Description'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <div class="alert alert-info">No associated values found for this trait.</div>
+        {% endif %}
+    {% endif %}
+
+</body>
+</html>
